@@ -2,18 +2,18 @@
 
 A voice-first writing workspace — speak naturally, get back clean, considered text. Built with Next.js, Tailwind CSS, Supabase, Web Speech API, Groq Whisper and OpenRouter.
 
-**Live:** https://kairoflow-eight.vercel.app (Vercel project `kairoflow`; `kairoflow.vercel.app` is currently held by another Vercel project and must be transferred/released to be attached here)
+**Live:** https://kairovoice.vercel.app
 
 ## Features
 
 - **Large center mic** with rich listening animation and `⌘/Ctrl + M` shortcut.
 - **Real-time transcription** via the browser Web Speech API (English, Hindi, Hinglish).
-- **Groq Whisper mode** as a switchable STT engine using `whisper-large-v3-turbo`.
-- **AI cleanup** through OpenRouter: removes fillers, fixes grammar, adds punctuation, preserves Hindi/Hinglish. Includes a local fallback when no key is set.
+- **Groq Whisper mode** as an optional free-tier STT upgrade using `whisper-large-v3-turbo`; without a key, Kairo automatically uses the free Web Speech engine.
+- **₹0 AI cleanup:** runs a built-in local cleaner by default — no key, no network call, no cost. Optional free-tier OpenRouter `*:free` models can be enabled in Settings; paid models are rejected by the server.
 - **Editable transcript** with copy, polish, save and clear actions.
 - **History** with search and delete; local for guests, synced per-user to Supabase when signed in.
 - **Supabase Auth** with password and magic-link sign-in.
-- **Settings** for API keys, cleanup model, engine, language and auto-save. Keys remain in browser storage.
+- **Settings** for optional free-tier keys, free cleanup model, engine, language and auto-save. Keys remain in browser storage.
 - Responsive dark UI with fine grain, glass panels and a mobile drawer.
 
 ## Local setup
@@ -31,10 +31,10 @@ Environment variables:
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase publishable/anon key |
 | `NEXT_PUBLIC_SITE_URL` | Site URL used for auth redirects |
-| `OPENROUTER_API_KEY` | Optional server fallback for cleanup |
-| `GROQ_API_KEY` | Optional server fallback for transcription |
+| `OPENROUTER_API_KEY` | Optional free-tier-only fallback for cleanup (leave blank for ₹0 local cleanup) |
+| `GROQ_API_KEY` | Optional free-tier fallback for transcription |
 
-Users can enter their own OpenRouter and Groq keys in **Settings**; those are stored in `localStorage` and forwarded only to `/api/cleanup` and `/api/transcribe`.
+**Zero-cost design:** no key is required. Web Speech handles live transcription, and local cleanup handles polishing. If you add keys, only OpenRouter models ending in `:free` (or `openrouter/free`) are accepted, and Groq transcription is pinned to its free-tier Whisper model. Paid models are rejected server-side.
 
 ## Database
 
@@ -42,4 +42,4 @@ Run [`supabase/migrations/001_init.sql`](supabase/migrations/001_init.sql) in th
 
 ## Deployment
 
-Deployed on Vercel from this repository. Production branch deployments are aliased to `kairoflow.vercel.app`. Set the environment variables above in the Vercel project settings, and add the deployment URL to the Supabase Auth redirect allow list.
+Deployed on Vercel from this repository at `kairovoice.vercel.app`. Set the environment variables above in the Vercel project settings, and add the deployment URL to the Supabase Auth redirect allow list.

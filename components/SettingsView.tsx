@@ -9,6 +9,7 @@ import {
 import { useApp } from "./AppProvider";
 import { Toggle } from "./Toggle";
 import { LANGUAGES, MODELS, type Engine } from "@/lib/types";
+import { localCleanup } from "@/lib/localCleanup";
 
 function KeyInput({
   value, onChange, placeholder, label,
@@ -63,13 +64,18 @@ export function SettingsView() {
   const [testing, setTesting] = useState(false);
 
   const testCleanup = async () => {
+    const sample = "umm so basically i think, like, this should work really well.";
+    if (!settings.openrouterKey) {
+      notify(`Free local result: ${localCleanup(sample, settings.language)}`, "success");
+      return;
+    }
     setTesting(true);
     try {
       const response = await fetch("/api/cleanup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          text: "umm so basically i think, like, this should work really well.",
+          text: sample,
           apiKey: settings.openrouterKey,
           model: settings.model,
           language: settings.language,
@@ -77,9 +83,9 @@ export function SettingsView() {
       });
       const data = await response.json();
       if (response.ok) notify(`Result: ${data.text}`, "success");
-      else notify(data?.error ?? "Could not test cleanup.", "error");
+      else notify(data?.error ?? "Could not test the free model.", "error");
     } catch {
-      notify("Could not reach the cleanup service.", "error");
+      notify("Free model unavailable — local cleanup still works.", "info");
     } finally {
       setTesting(false);
     }
@@ -93,21 +99,29 @@ export function SettingsView() {
             <span className="h-1.5 w-1.5 rounded-full bg-[#c8ff5e]" /> Workspace / Settings
           </div>
           <h1 className="mt-2 text-[30px] font-light tracking-[-0.05em] text-white sm:text-[38px]">Make Kairo yours.</h1>
-          <p className="mt-2 max-w-lg text-[13px] leading-relaxed text-white/35">Tune transcription, polish and language to match how you think.</p>
+          <p className="mt-2 max-w-lg text-[13px] leading-relaxed text-white/35">Tune transcription, polish and language to match how you think — without spending a rupee.</p>
         </div>
         <Link href="/" className="btn"><ArrowRight size={14} className="rotate-180" /> Back to studio</Link>
       </header>
+
+      <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-[#c8ff5e]/20 bg-[#c8ff5e]/[0.05] px-5 py-4">
+        <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#c8ff5e]/15 text-[#c8ff5e]"><Sparkles size={16} /></div>
+        <div>
+          <div className="text-[13px] font-medium text-white/90">₹0 by design</div>
+          <div className="mt-0.5 text-[11px] leading-relaxed text-white/45">Every key is optional. Kairo works with free browser speech and local cleanup out of the box, and only ever calls free-tier models.</div>
+        </div>
+      </div>
 
       <div className="space-y-5">
         <Section
           icon={<Mic2 size={18} />}
           title="Speech engine"
-          description="Start with browser transcription, or bring your own Groq key for Whisper-grade accuracy."
+          description="Browser transcription is free and works immediately. Groq Whisper is an optional free-tier upgrade with rate limits."
         >
           <div className="grid gap-3 sm:grid-cols-2">
             {([
-              { id: "browser", title: "Web Speech API", note: "Live, word-by-word transcription. Free, Chrome & Edge." },
-              { id: "groq", title: "Groq Whisper", note: "Higher accuracy in noisy rooms and for Hinglish." },
+              { id: "browser", title: "Web Speech API", note: "₹0 · no key · live, word-by-word (Chrome & Edge)." },
+              { id: "groq", title: "Groq Whisper", note: "₹0 free tier · optional free key · better accuracy." },
             ] as { id: Engine; title: string; note: string }[]).map((option) => (
               <button
                 key={option.id}
@@ -129,8 +143,8 @@ export function SettingsView() {
             ))}
           </div>
           <KeyInput
-            label="Groq API key"
-            placeholder={settings.engine === "groq" ? "gsk_…  (required for Whisper)" : "gsk_…  (optional)"}
+            label="Groq API key (optional · free tier)"
+            placeholder={settings.engine === "groq" ? "gsk_…  (free tier key)" : "gsk_…  (optional)"}
             value={settings.groqKey}
             onChange={(value) => updateSettings({ groqKey: value })}
           />
@@ -139,7 +153,7 @@ export function SettingsView() {
         <Section
           icon={<Sparkles size={18} />}
           title="AI cleanup"
-          description="Turn dictation into prose: filler words removed, grammar fixed, punctuation added."
+          description="Turn dictation into prose: filler words removed, grammar fixed, punctuation added. Free local cleanup runs by default."
         >
           <div className="flex items-center justify-between rounded-xl border border-white/[0.07] bg-white/[0.02] px-4 py-3.5">
             <div>
@@ -150,7 +164,7 @@ export function SettingsView() {
           </div>
 
           <div>
-            <label className="label mb-2 block">Cleanup model</label>
+            <label className="label mb-2 block">Free cleanup model (only used if a key is added)</label>
             <div className="relative">
               <select
                 value={settings.model}
@@ -164,7 +178,7 @@ export function SettingsView() {
           </div>
 
           <KeyInput
-            label="OpenRouter API key"
+            label="OpenRouter API key (optional · free models only)"
             placeholder="sk-or-v1-…"
             value={settings.openrouterKey}
             onChange={(value) => updateSettings({ openrouterKey: value })}
@@ -172,10 +186,10 @@ export function SettingsView() {
 
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="max-w-md text-[11px] leading-relaxed text-white/30">
-              No key? Kairo falls back to a lightweight local cleanup that removes common fillers.
+              No key needed: Kairo cleans locally for free. Paid models are blocked by the server. Free-tier keys are rate-limited.
             </p>
             <button onClick={testCleanup} disabled={testing} className="btn">
-              {testing ? <Loader2 size={14} className="animate-spin" /> : <TestTube2 size={14} />} Test cleanup
+              {testing ? <Loader2 size={14} className="animate-spin" /> : <TestTube2 size={14} />} Test free cleanup
             </button>
           </div>
         </Section>
@@ -209,7 +223,7 @@ export function SettingsView() {
           <div className="flex items-start gap-3 rounded-xl border border-[#c8ff5e]/15 bg-[#c8ff5e]/[0.04] px-4 py-3.5">
             <ShieldCheck size={16} className="mt-0.5 flex-none text-[#c8ff5e]/80" />
             <p className="text-[11px] leading-relaxed text-white/45">
-              API keys stay in this browser&apos;s local storage. They are sent only to Kairo&apos;s server routes when you transcribe or polish, and never written to your Supabase account.
+              Keys stay in this browser&apos;s local storage and are never written to Supabase. The cleanup route rejects any model that is not marked free on OpenRouter, so paid usage is impossible.
             </p>
           </div>
         </Section>

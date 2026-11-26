@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isFreeModel } from "@/lib/types";
 
 type CleanupBody = {
   text?: string;
@@ -21,8 +22,13 @@ export async function POST(request: Request) {
     const body = (await request.json()) as CleanupBody;
     const text = (body.text ?? "").trim();
     const apiKey = (body.apiKey ?? "").trim() || process.env.OPENROUTER_API_KEY || "";
-    const model = (body.model ?? "").trim() || "openai/gpt-4o-mini";
+    const model = (body.model ?? "").trim() || "openrouter/free";
     const language = (body.language ?? "en").trim();
+
+    // Kairo is zero-cost by design: paid models are rejected even if a key is supplied.
+    if (!isFreeModel(model)) {
+      return NextResponse.json({ error: "Only free OpenRouter models are allowed." }, { status: 400 });
+    }
 
     if (!text) return NextResponse.json({ error: "Nothing to clean up yet." }, { status: 400 });
     if (!apiKey) {

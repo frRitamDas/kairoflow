@@ -9,8 +9,10 @@ const FILLERS: Record<LanguageCode, RegExp> = {
 /** Deterministic fallback so cleanup always does something useful without an API key. */
 export function localCleanup(text: string, language: LanguageCode): string {
   let result = text.replace(FILLERS[language] ?? FILLERS.en, " ").replace(/\s{2,}/g, " ");
-  result = result.replace(/\s+([,.!?;:])/g, "$1");
+  result = result.replace(/\s+([,.!?;:])/g, "$1").replace(/([,.!?;:])\s+/g, "$1 ");
   result = result.replace(/([a-z])([A-Z])/g, "$1 $2");
+  if (language !== "hi") result = result.replace(/\bi\b/g, "I");
+  result = result.replace(/(^|[.!?।]\s+)([a-z])/g, (_match, prefix: string, letter: string) => prefix + letter.toUpperCase());
   result = result.trim();
   if (!result) return text.trim();
   if (!/[.!?।]$/.test(result)) result += ".";

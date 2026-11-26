@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, type Settings } from "./types";
+import { DEFAULT_SETTINGS, isFreeModel, type Settings } from "./types";
 
 const KEY = "kairo.settings.v1";
 
@@ -7,7 +7,10 @@ export function loadSettings(): Settings {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return DEFAULT_SETTINGS;
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } as Settings;
+    const stored = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } as Settings;
+    // Old installs may have a paid model saved; never let one through.
+    if (!isFreeModel(stored.model)) stored.model = DEFAULT_SETTINGS.model;
+    return stored;
   } catch {
     return DEFAULT_SETTINGS;
   }

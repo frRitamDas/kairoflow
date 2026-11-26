@@ -10,7 +10,7 @@ import { Waveform } from "./Waveform";
 import { Toggle } from "./Toggle";
 import { useSpeechRecognition } from "@/lib/useSpeechRecognition";
 import { localCleanup } from "@/lib/localCleanup";
-import { LANGUAGES, languageLabel, type LanguageCode } from "@/lib/types";
+import { LANGUAGES, languageLabel, type Engine, type LanguageCode } from "@/lib/types";
 
 function pickMimeType() {
   const options = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"];
@@ -33,6 +33,7 @@ export function Studio() {
   const startedRef = useRef(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const activeEngineRef = useRef<Engine>("browser");
   const streamRef = useRef<MediaStream | null>(null);
   const historyRef = useRef(history);
   const speechRef = useRef(speech);
@@ -67,6 +68,13 @@ export function Studio() {
 
   const cleanupText = useCallback(async (text: string, silentFallback = false) => {
     if (!text.trim()) return { text, polished: false };
+
+    // No key? Use the built-in, completely free cleanup. No network call, no cost.
+    if (!settings.openrouterKey) {
+      if (!silentFallback) notify("Cleaned locally — ₹0, no API key needed.", "info");
+      return { text: localCleanup(text, settings.language), polished: true };
+    }
+
     try {
       const response = await fetch("/api/cleanup", {
         method: "POST",
@@ -81,13 +89,13 @@ export function Studio() {
       const data = await response.json();
       if (response.ok && typeof data.text === "string") return { text: data.text as string, polished: true };
       if (response.status === 400) {
-        if (!silentFallback) notify("Using local cleanup — add an OpenRouter key for AI polishing.", "info");
+        if (!silentFallback) notify("Free model unavailable — cleaned locally instead.", "info");
         return { text: localCleanup(text, settings.language), polished: true };
       }
       throw new Error(data?.error ?? "Cleanup failed");
     } catch {
-      notify("AI cleanup unavailable. Kept your original transcript.", "error");
-      return { text, polished: false };
+      if (!silentFallback) notify("Free model unavailable — cleaned locally instead.", "info");
+      return { text: localCleanup(text, settings.language), polished: true };
     }
   }, [settings.openrouterKey, settings.model, settings.language, notify]);
 
@@ -119,13 +127,13 @@ export function Studio() {
         raw_text: original,
         final_text: final,
         language: settings.language,
-        source: settings.engine,
+        source: activeEngineRef.current,
         polished: wasPolished,
         duration_ms: Math.max(0, Date.now() - startedRef.current),
       });
     }
     setIsProcessing(false);
-  }, [settings.aiCleanup, settings.autoSave, settings.engine, settings.language, cleanupText, addEntry]);
+  }, [settings.aiCleanup, settings.autoSave, settings.language, cleanupText, addEntry]);
 
   const stopGroqRecording = useCallback(() => {
     setIsRecording(false);
@@ -134,7 +142,7 @@ export function Studio() {
 
   const startGroqRecording = useCallback(async () => {
     if (!settings.groqKey) {
-      notify("Add your Groq API key in Settings to use Whisper transcription.", "error");
+      notify("Groq's free tier needs a free API key — using free Web Speech instead.", "info");
       return;
     }
     try {
@@ -183,7 +191,7 @@ export function Studio() {
   const toggleRecording = useCallback(() => {
     if (isProcessing) return;
     if (isRecording) {
-      if (settings.engine === "browser") {
+      if (activeEngineRef.current === "browser") {
         speechRef.current.stop();
         setIsRecording(false);
         setTimeout(() => {
@@ -198,23 +206,29 @@ export function Studio() {
       }
       return;
     }
-    if (settings.engine === "browser") {
-      if (!speech.supported) {
-        notify("Live transcription needs Chrome or Edge. You can also switch to Groq Whisper in Settings.", "error");
-        return;
-      }
-      if (!speech.start()) return;
-    } else {
+    const useGroq = settings.engine === "groq" && Boolean(settings.groqKey);
+    if (settings.engine === "groq" && !settings.groqKey) {
+      notify("Groq Whisper needs a free-tier key — using free Web Speech instead.", "info");
+    }
+
+    if (useGroq) {
+      activeEngineRef.current = "groq";
       void startGroqRecording();
       return;
     }
+    activeEngineRef.current = "browser";
+    if (!speech.supported) {
+      notify("Live transcription needs Chrome or Edge. Everything stays free either way.", "error");
+      return;
+    }
+    if (!speech.start()) return;
     startedRef.current = Date.now();
     editedRef.current = false;
     setDraft("");
     setRawText("");
     setPolished(false);
     setIsRecording(true);
-  }, [isProcessing, isRecording, settings.engine, speech, stopGroqRecording, startGroqRecording, finalize, notify]);
+  }, [isProcessing, isRecording, settings.engine, settings.groqKey, speech, stopGroqRecording, startGroqRecording, finalize, notify]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -251,7 +265,7 @@ export function Studio() {
       raw_text: rawRef.current || draft,
       final_text: draft,
       language: settings.language,
-      source: settings.engine,
+      source: activeEngineRef.current,
       polished,
       duration_ms: Math.max(0, Date.now() - startedRef.current),
     });
@@ -304,7 +318,7 @@ export function Studio() {
           Speak naturally. <span className="text-white/35">Get clean text.</span>
         </h2>
         <p className="mt-4 max-w-lg text-[13px] leading-relaxed text-white/40 sm:text-[14px]">
-          Kairo listens in real time, removes the ums and ahs, and gives you words worth keeping.
+          Kairo listens in real time, removes the ums and ahs, and gives you words worth keeping — all at ₹0, no keys required.
         </p>
 
         <div className="relative mt-10 flex flex-col items-center">
@@ -344,7 +358,7 @@ export function Studio() {
           </div>
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.14em] text-white/35">
             <span className="rounded-md border border-white/[0.07] px-2 py-1">{languageLabel(settings.language)}</span>
-            <span className="rounded-md border border-white/[0.07] px-2 py-1">{settings.engine === "browser" ? "Web Speech" : "Groq Whisper"}</span>
+            <span className="rounded-md border border-white/[0.07] px-2 py-1">{settings.engine === "browser" ? "Web Speech · ₹0" : "Groq free tier"}</span>
             {polished && <span className="rounded-md border border-[#c8ff5e]/20 bg-[#c8ff5e]/[0.07] px-2 py-1 text-[#c8ff5e]/80">Polished</span>}
           </div>
         </div>
@@ -394,11 +408,11 @@ export function Studio() {
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
         <div className="panel-flat flex items-center gap-3 px-4 py-3.5">
           <div className="grid h-8 w-8 place-items-center rounded-lg bg-[#c8ff5e]/10 text-[#c8ff5e]"><AudioIcon /></div>
-          <div><div className="text-[11px] font-medium text-white/80">{settings.engine === "browser" ? "Real-time capture" : "Studio-grade Whisper"}</div><div className="mt-0.5 text-[10px] text-white/30">{settings.engine === "browser" ? "Web Speech API" : "Groq whisper-large-v3-turbo"}</div></div>
+          <div><div className="text-[11px] font-medium text-white/80">{settings.engine === "browser" ? "Free real-time capture" : "Free Whisper tier"}</div><div className="mt-0.5 text-[10px] text-white/30">{settings.engine === "browser" ? "Web Speech API · no key" : "Groq whisper-large-v3-turbo · free key"}</div></div>
         </div>
         <div className="panel-flat flex items-center gap-3 px-4 py-3.5">
           <div className="grid h-8 w-8 place-items-center rounded-lg bg-white/[0.06] text-white/60"><Sparkles size={15} /></div>
-          <div><div className="text-[11px] font-medium text-white/80">{settings.aiCleanup ? "Cleanup active" : "Cleanup off"}</div><div className="mt-0.5 text-[10px] text-white/30">{settings.aiCleanup ? settings.model.split("/").pop() : "Raw transcript only"}</div></div>
+          <div><div className="text-[11px] font-medium text-white/80">{settings.aiCleanup ? "Cleanup active" : "Cleanup off"}</div><div className="mt-0.5 text-[10px] text-white/30">{settings.aiCleanup ? (settings.openrouterKey ? `${settings.model.split("/").pop()} · free` : "Local cleanup · ₹0 · no key") : "Raw transcript only"}</div></div>
         </div>
         <div className="panel-flat flex items-center justify-between gap-3 px-4 py-3.5">
           <div><div className="text-[11px] font-medium text-white/80">{user ? "History synced" : `${history.length} local transcripts`}</div><div className="mt-0.5 text-[10px] text-white/30">{user ? "Saved to Supabase" : "Sign in to sync everywhere"}</div></div>

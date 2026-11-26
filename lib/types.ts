@@ -29,12 +29,20 @@ export const LANGUAGES: { code: LanguageCode; label: string; native: string; spe
   { code: "hinglish", label: "Hinglish", native: "हिंग्लिश", speech: "en-IN", flag: "HG" },
 ];
 
+// Zero-cost only. Every option here is an OpenRouter free-tier model.
+// `openrouter/free` auto-routes to whichever free model is available.
 export const MODELS = [
-  { id: "openai/gpt-4o-mini", label: "GPT-4o mini", note: "Fast · balanced" },
-  { id: "meta-llama/llama-3.3-70b-instruct", label: "Llama 3.3 70B", note: "Excellent grammar" },
-  { id: "anthropic/claude-3.5-haiku", label: "Claude 3.5 Haiku", note: "Natural · concise" },
-  { id: "google/gemini-flash-1.5", label: "Gemini Flash 1.5", note: "Multilingual" },
+  { id: "openrouter/free", label: "Free auto-router", note: "₹0 · best available" },
+  { id: "meta-llama/llama-3.3-70b-instruct:free", label: "Llama 3.3 70B", note: "₹0 · strong grammar" },
+  { id: "openai/gpt-oss-20b:free", label: "GPT-OSS 20B", note: "₹0 · fast" },
+  { id: "google/gemma-3-27b-it:free", label: "Gemma 3 27B", note: "₹0 · multilingual" },
+  { id: "qwen/qwen3-235b-a22b:free", label: "Qwen3 235B", note: "₹0 · Hinglish friendly" },
 ];
+
+/** Hard guard: never allow a paid OpenRouter model to be called. */
+export function isFreeModel(model: string): boolean {
+  return model === "openrouter/free" || model.endsWith(":free");
+}
 
 export const DEFAULT_SETTINGS: Settings = {
   aiCleanup: true,
@@ -42,7 +50,7 @@ export const DEFAULT_SETTINGS: Settings = {
   language: "en",
   openrouterKey: "",
   groqKey: "",
-  model: "openai/gpt-4o-mini",
+  model: "openrouter/free",
   autoSave: true,
 };
 
