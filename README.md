@@ -2,7 +2,7 @@
 
 A voice-first writing workspace — speak naturally, get back clean, considered text. Built with Next.js, Tailwind CSS, Supabase, Web Speech API, Groq Whisper and OpenRouter.
 
-**Live:** https://kairoflow.vercel.app
+**Live:** https://kairoflow-eight.vercel.app (Vercel project `kairoflow`; `kairoflow.vercel.app` is currently held by another Vercel project and must be transferred/released to be attached here)
 
 ## Features
 
