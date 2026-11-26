@@ -18,3 +18,20 @@ export function localCleanup(text: string, language: LanguageCode): string {
   if (!/[.!?।]$/.test(result)) result += ".";
   return result.charAt(0).toUpperCase() + result.slice(1);
 }
+
+/** Free, deterministic rewrite used when no OpenRouter key is added. */
+export function localRewrite(text: string, language: LanguageCode, tone: "concise" | "professional" | "friendly" = "concise"): string {
+  const polished = localCleanup(text, language);
+  const sentences = polished.split(/(?<=[.!?।])\s+/).filter(Boolean);
+
+  if (tone === "concise") {
+    const keep = sentences.slice(0, Math.max(1, Math.ceil(sentences.length / 2))).join(" ");
+    return keep.replace(/\.$/, "") + ".";
+  }
+  if (tone === "professional") {
+    return polished.replace(/'m|'ve|'re|'ll/g, (match: string) => (
+      { "'m": " am", "'ve": " have", "'re": " are", "'ll": " will" }[match] ?? match
+    ));
+  }
+  return polished.replace(/\.$/, "") + " Hope that helps.";
+}

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  AudioLines, ChevronDown, Clock3, LogOut, Search, Settings2, Sparkles, Trash2, X,
+  AudioLines, ChevronDown, Clock3, LogOut, Puzzle, Search, Settings2, Sparkles, Trash2, X,
 } from "lucide-react";
 import { useApp } from "./AppProvider";
 import { BrandMark } from "./BrandMark";
@@ -40,7 +40,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
           <BrandMark />
           <div className="leading-none">
             <div className="text-[15px] font-semibold tracking-[-0.04em]">kairo</div>
-            <div className="mt-1 text-[9px] uppercase tracking-[0.22em] text-white/35">voice intelligence</div>
+            <div className="mt-1 text-[9px] uppercase tracking-[0.22em] text-white/35">kairo voice</div>
           </div>
         </Link>
         <button className="btn btn-icon lg:hidden" onClick={onClose} aria-label="Close menu"><X size={16} /></button>
@@ -49,6 +49,9 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
       <nav className="space-y-1 px-3">
         <Link href="/" onClick={onClose} className="nav-item" data-active={pathname === "/"} >
           <AudioLines size={16} /> Studio
+        </Link>
+        <Link href="/extension" onClick={onClose} className="nav-item" data-active={pathname === "/extension"}>
+          <Puzzle size={16} /> Desktop extension
         </Link>
         <Link href="/settings" onClick={onClose} className="nav-item" data-active={pathname === "/settings"}>
           <Settings2 size={16} /> Settings

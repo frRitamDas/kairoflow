@@ -10,7 +10,8 @@ A voice-first writing workspace — speak naturally, get back clean, considered 
 - **Real-time transcription** via the browser Web Speech API (English, Hindi, Hinglish).
 - **Groq Whisper mode** as an optional free-tier STT upgrade using `whisper-large-v3-turbo`; without a key, Kairo automatically uses the free Web Speech engine.
 - **₹0 AI cleanup:** runs a built-in local cleaner by default — no key, no network call, no cost. Optional free-tier OpenRouter `*:free` models can be enabled in Settings; paid models are rejected by the server.
-- **Editable transcript** with copy, polish, save and clear actions.
+- **Editable transcript** with copy, polish, rewrite tones, save and clear actions.
+- **Desktop extension** — Chromium side panel that dictates into any text field at ₹0. See [`extension/README.md`](extension/README.md) and the in-app `/extension` page.
 - **History** with search and delete; local for guests, synced per-user to Supabase when signed in.
 - **Supabase Auth** with password and magic-link sign-in.
 - **Settings** for optional free-tier keys, free cleanup model, engine, language and auto-save. Keys remain in browser storage.

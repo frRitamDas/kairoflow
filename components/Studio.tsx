@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowUpRight, Check, Copy, Eraser, Keyboard, Loader2, Mic, Save, Sparkles, Square,
+  ArrowUpRight, Check, Copy, Eraser, Keyboard, Loader2, Mic, Save, Sparkles, Square, Wand2,
 } from "lucide-react";
 import { useApp } from "./AppProvider";
 import { Waveform } from "./Waveform";
 import { Toggle } from "./Toggle";
 import { useSpeechRecognition } from "@/lib/useSpeechRecognition";
-import { localCleanup } from "@/lib/localCleanup";
+import { localCleanup, localRewrite } from "@/lib/localCleanup";
 import { LANGUAGES, languageLabel, type Engine, type LanguageCode } from "@/lib/types";
 
 function pickMimeType() {
@@ -26,6 +26,8 @@ export function Studio() {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showTones, setShowTones] = useState(false);
+  const [rewriteTone, setRewriteTone] = useState<"concise" | "professional" | "friendly">("concise");
 
   const textRef = useRef("");
   const rawRef = useRef("");
@@ -66,13 +68,20 @@ export function Studio() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
-  const cleanupText = useCallback(async (text: string, silentFallback = false) => {
+  const cleanupText = useCallback(async (
+    text: string,
+    silentFallback = false,
+    options?: { mode?: "polish" | "rewrite"; tone?: "concise" | "professional" | "friendly" },
+  ) => {
     if (!text.trim()) return { text, polished: false };
 
     // No key? Use the built-in, completely free cleanup. No network call, no cost.
     if (!settings.openrouterKey) {
       if (!silentFallback) notify("Cleaned locally — ₹0, no API key needed.", "info");
-      return { text: localCleanup(text, settings.language), polished: true };
+      const local = options?.mode === "rewrite"
+        ? localRewrite(text, settings.language, options?.tone)
+        : localCleanup(text, settings.language);
+      return { text: local, polished: true };
     }
 
     try {
@@ -84,18 +93,26 @@ export function Studio() {
           apiKey: settings.openrouterKey,
           model: settings.model,
           language: settings.language,
+          mode: options?.mode ?? "polish",
+          tone: options?.tone ?? "concise",
         }),
       });
       const data = await response.json();
       if (response.ok && typeof data.text === "string") return { text: data.text as string, polished: true };
       if (response.status === 400) {
         if (!silentFallback) notify("Free model unavailable — cleaned locally instead.", "info");
-        return { text: localCleanup(text, settings.language), polished: true };
+        const local = options?.mode === "rewrite"
+          ? localRewrite(text, settings.language, options?.tone)
+          : localCleanup(text, settings.language);
+        return { text: local, polished: true };
       }
       throw new Error(data?.error ?? "Cleanup failed");
     } catch {
       if (!silentFallback) notify("Free model unavailable — cleaned locally instead.", "info");
-      return { text: localCleanup(text, settings.language), polished: true };
+      const local = options?.mode === "rewrite"
+        ? localRewrite(text, settings.language, options?.tone)
+        : localCleanup(text, settings.language);
+      return { text: local, polished: true };
     }
   }, [settings.openrouterKey, settings.model, settings.language, notify]);
 
@@ -259,6 +276,18 @@ export function Studio() {
     notify("Text polished.", "success");
   };
 
+  const rewriteNow = async (tone: "concise" | "professional" | "friendly") => {
+    if (!draft.trim() || isProcessing) return;
+    setRewriteTone(tone);
+    setIsProcessing(true);
+    const result = await cleanupText(draft, true, { mode: "rewrite", tone });
+    setDraft(result.text);
+    setPolished(result.polished);
+    setIsProcessing(false);
+    setShowTones(false);
+    notify(`Rewritten · ${tone}`, "success");
+  };
+
   const saveNow = async () => {
     if (!draft.trim()) return;
     await addEntry({
@@ -382,6 +411,26 @@ export function Studio() {
           )}
         </div>
 
+        {showTones && (
+          <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.07] bg-black/10 px-5 py-3 sm:px-7">
+            <span className="mr-1 text-[10px] uppercase tracking-[0.16em] text-white/30">Rewrite as</span>
+            {(["concise", "professional", "friendly"] as const).map((tone) => (
+              <button
+                key={tone}
+                onClick={() => rewriteNow(tone)}
+                disabled={isProcessing}
+                className={`rounded-full border px-3 py-1.5 text-[11px] capitalize transition ${
+                  rewriteTone === tone
+                    ? "border-[#c8ff5e]/40 bg-[#c8ff5e]/10 text-[#c8ff5e]"
+                    : "border-white/[0.09] text-white/55 hover:bg-white/[0.06] hover:text-white"
+                }`}
+              >
+                {tone}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.07] bg-black/10 px-5 py-3.5 sm:px-7">
           <div className="flex items-center gap-2 text-[11px] text-white/30">
             <Keyboard size={13} />
@@ -391,6 +440,7 @@ export function Studio() {
           <div className="flex flex-wrap items-center gap-2">
             <button onClick={saveNow} disabled={!draft.trim()} className="btn" title="Save to history"><Save size={14} /> <span className="hidden sm:inline">Save</span></button>
             <button onClick={polishNow} disabled={!draft.trim() || isProcessing} className="btn" title="Polish with AI"><Sparkles size={14} /> <span className="hidden sm:inline">Polish</span></button>
+            <button onClick={() => setShowTones((value) => !value)} disabled={!draft.trim() || isProcessing} className="btn" title="Rewrite tone"><Wand2 size={14} /> <span className="hidden sm:inline">Rewrite</span></button>
             <button
               onClick={() => { setDraft(""); setRawText(""); setPolished(false); editedRef.current = false; speech.reset(); }}
               disabled={!draft.trim() || isRecording}

@@ -6,6 +6,8 @@ type CleanupBody = {
   apiKey?: string;
   model?: string;
   language?: string;
+  mode?: "polish" | "rewrite";
+  tone?: "concise" | "professional" | "friendly";
 };
 
 const SYSTEM_PROMPT = `You are Kairo's transcription editor. Clean up the user's dictated text.
@@ -17,6 +19,17 @@ Rules:
 - Never invent facts. Never add commentary, quotes, headings, or markdown.
 - Return ONLY the cleaned text.`;
 
+const MODE_INSTRUCTIONS: Record<string, string> = {
+  polish: "Goal: polish only. Keep every idea, just make it clean and readable.",
+  rewrite: "Goal: rewrite for clarity and impact while preserving all facts and intent. Tighten structure and remove repetition.",
+};
+
+const TONE_INSTRUCTIONS: Record<string, string> = {
+  concise: "Tone: brief, direct, no filler.",
+  professional: "Tone: composed, professional, complete sentences.",
+  friendly: "Tone: warm, natural, conversational.",
+};
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as CleanupBody;
@@ -24,6 +37,8 @@ export async function POST(request: Request) {
     const apiKey = (body.apiKey ?? "").trim() || process.env.OPENROUTER_API_KEY || "";
     const model = (body.model ?? "").trim() || "openrouter/free";
     const language = (body.language ?? "en").trim();
+    const mode = body.mode === "rewrite" ? "rewrite" : "polish";
+    const tone = ["concise", "professional", "friendly"].includes(body.tone ?? "") ? body.tone! : "concise";
 
     // Kairo is zero-cost by design: paid models are rejected even if a key is supplied.
     if (!isFreeModel(model)) {
@@ -52,7 +67,10 @@ export async function POST(request: Request) {
         temperature: 0.2,
         max_tokens: 2048,
         messages: [
-          { role: "system", content: `${SYSTEM_PROMPT}\nLanguage: ${language}` },
+          {
+            role: "system",
+            content: `${SYSTEM_PROMPT}\n${MODE_INSTRUCTIONS[mode]}\n${TONE_INSTRUCTIONS[tone]}\nLanguage: ${language}`,
+          },
           { role: "user", content: text },
         ],
       }),

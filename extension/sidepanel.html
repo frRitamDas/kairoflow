@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kairo Voice</title>
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="mini-logo"><span></span></span>
+        <div>
+          <div class="brand-name">kairo <span>voice</span></div>
+          <div class="brand-sub">dictate anywhere</div>
+        </div>
+      </div>
+      <div class="status" id="status"><i></i><span>Ready</span></div>
+    </header>
+
+    <div class="target" id="target">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h10M4 17h7" /></svg>
+      <div>
+        <strong id="targetTitle">Click any text field</strong>
+        <small id="targetSub">Then tap the orb and just speak.</small>
+      </div>
+    </div>
+
+    <section class="stage">
+      <div class="ring ring-a"></div>
+      <div class="ring ring-b"></div>
+      <div class="ring ring-c"></div>
+      <button id="orb" class="orb" aria-label="Start dictation">
+        <span class="flow"></span>
+        <span class="orb-core">
+          <svg class="icon-mic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></svg>
+          <svg class="icon-stop" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2"/></svg>
+          <svg class="icon-spin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9"/></svg>
+        </span>
+      </button>
+    </section>
+
+    <p class="hint" id="hint">Tap to speak · your words appear below</p>
+
+    <div class="modes" role="tablist" aria-label="Kairo mode">
+      <button class="mode active" data-mode="voice" role="tab">Voice</button>
+      <button class="mode" data-mode="polish" role="tab">Polish</button>
+      <button class="mode" data-mode="rewrite" role="tab">Rewrite</button>
+    </div>
+    <div class="tones hidden" id="tones">
+      <button class="tone active" data-tone="concise">Concise</button>
+      <button class="tone" data-tone="professional">Professional</button>
+      <button class="tone" data-tone="friendly">Friendly</button>
+    </div>
+
+    <section class="output-card">
+      <div class="output-head">
+        <span class="label">Transcript</span>
+        <span class="count" id="count">0 words</span>
+      </div>
+      <textarea id="text" spellcheck="false" placeholder="Your words will flow in here…"></textarea>
+    </section>
+
+    <div class="actions">
+      <button id="insert" class="primary" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg> Insert
+      </button>
+      <button id="copy" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg> Copy
+      </button>
+      <button id="clear" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg> Clear
+      </button>
+    </div>
+
+    <details class="drawer" id="recentDrawer">
+      <summary>Recent <span id="recentCount">0</span></summary>
+      <div id="recentList" class="recent-list"></div>
+    </details>
+
+    <details class="drawer" id="settingsDrawer">
+      <summary>Settings</summary>
+      <div class="settings">
+        <label>Website endpoint<input id="endpoint" type="text" value="https://kairovoice.vercel.app" /></label>
+        <label>OpenRouter key <small>optional · free models only</small><input id="apiKey" type="password" placeholder="sk-or-v1-…" /></label>
+        <label>Free model<select id="model">
+          <option value="openrouter/free">Free auto-router</option>
+          <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B free</option>
+          <option value="openai/gpt-oss-20b:free">GPT-OSS 20B free</option>
+          <option value="google/gemma-3-27b-it:free">Gemma 3 27B free</option>
+        </select></label>
+        <label>Language<select id="language">
+          <option value="en">English</option>
+          <option value="hi">Hindi</option>
+          <option value="hinglish">Hinglish</option>
+        </select></label>
+        <label class="check"><input id="autoInsert" type="checkbox" checked /> Auto-write into the text field</label>
+        <p class="fine">No key needed. Polish and rewrite also work locally, for free. Paid models are blocked by the website.</p>
+      </div>
+    </details>
+  </div>
+  <script src="sidepanel.js"></script>
+</body>
+</html>
